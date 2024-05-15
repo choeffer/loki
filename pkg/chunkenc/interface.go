@@ -21,10 +21,11 @@ var (
 	ErrInvalidSize     = errors.New("invalid size")
 	ErrInvalidFlag     = errors.New("invalid flag")
 	ErrInvalidChecksum = errors.New("invalid chunk checksum")
+	ErrDuplicateEntry  = errors.New("duplicate entry")
 )
 
 type errTooFarBehind struct {
-	// original timestmap of the entry itself.
+	// original timestamp of the entry itself.
 	entryTs time.Time
 
 	// cutoff is the oldest acceptable timstamp of the `stream` that entry belongs to.
@@ -46,6 +47,31 @@ func (m *errTooFarBehind) Error() string {
 
 func IsOutOfOrderErr(err error) bool {
 	return err == ErrOutOfOrder || IsErrTooFarBehind(err)
+}
+
+type errDuplicateEntry struct {
+	// original timestamp of the entry itself.
+	entryTs time.Time
+
+	// string representation of the stream for the entry
+	stream string
+}
+
+func IsErrDuplicateEntry(err error) bool {
+	_, ok := err.(*errDuplicateEntry)
+	return ok
+}
+
+func ErrDuplicateLogEntry(entryTs time.Time, stream string) error {
+	return &errDuplicateEntry{entryTs: entryTs, stream: stream}
+}
+
+func (m *errDuplicateEntry) Error() string {
+	return fmt.Sprintf("entry is a duplicate, entry timestamp is: %s, stream information is: %s", m.entryTs.Format(time.RFC3339), m.stream)
+}
+
+func IsDuplicateEntryErr(err error) bool {
+	return err == ErrDuplicateEntry || IsErrDuplicateEntry(err)
 }
 
 // Encoding is the identifier for a chunk encoding.
